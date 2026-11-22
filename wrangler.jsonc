@@ -6,11 +6,14 @@
   "main": "@astrojs/cloudflare/entrypoints/server",
   "assets": { "binding": "ASSETS", "directory": "./dist" },
   "observability": { "enabled": true },
+  // Production values. Local development overrides these with .dev.vars.
   "vars": {
     "STORE_NAME": "Shelfmade",
-    "SITE_URL": "http://localhost:4321",
-    "ENVIRONMENT": "development",
-    "CURRENCY": "usd"
+    // Replace with your live address, e.g. https://shelfmade.<your-subdomain>.workers.dev or https://yourdomain.com
+    "SITE_URL": "https://shelfmade.example.workers.dev",
+    "ENVIRONMENT": "production",
+    "CURRENCY": "usd",
+    "STRIPE_AUTOMATIC_TAX": "false"
   },
   "d1_databases": [
     {
