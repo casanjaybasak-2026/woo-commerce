@@ -1,3 +1,111 @@
 ---
+import Base from "../layouts/Base.astro";
+import ProductCard from "../components/ProductCard.astro";
+import Icon from "../components/Icon.astro";
+import EmptyState from "../components/EmptyState.astro";
+import { getEnv } from "../lib/env";
+import { listCategories, listPublished } from "../lib/db/products";
+
+const env = getEnv();
+const [products, categories] = await Promise.all([listPublished(env.DB), listCategories(env.DB)]);
+const featured = products.slice(0, 8);
+const faqs = [
+  { q: "How do I get my files?", a: "Right after payment we email you a link that signs you in to your Library, where every purchase can be downloaded." },
+  { q: "Do I need an account?", a: "No password needed. Your email is your account: request a sign-in link any time from the Sign in page." },
+  { q: "Can I download again later?", a: "Yes. Your purchases stay in your Library, so you can come back and download them again whenever you need." },
+  { q: "Is checkout secure?", a: "Payments are handled by Stripe. Your card details never touch our servers." },
+];
+Astro.response.headers.set("Cache-Control", "public, max-age=60, s-maxage=300");
 ---
-<h1>Shelfmade</h1>
+<Base>
+  <section class="hero">
+    <div class="container hero-inner">
+      <div class="hero-copy">
+        <span class="badge badge-accent">Instant digital downloads</span>
+        <h1>Practical digital products, ready the moment you buy.</h1>
+        <p class="lead muted">Templates, guides and toolkits made to save you hours. Pay securely, get an email, and download from your Library any time.</p>
+        <div class="row">
+          <a href="/shop" class="btn btn-primary btn-lg">Browse the shop <Icon name="arrow-right" /></a>
+          <a href="#how" class="btn btn-secondary btn-lg">How it works</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <div class="row between section-head">
+        <h2>Featured products</h2>
+        {products.length > 0 && <a href="/shop" class="btn btn-ghost">View all <Icon name="arrow-right" size={18} /></a>}
+      </div>
+      {featured.length > 0
+        ? <div class="grid grid-4">{featured.map((p) => <ProductCard product={p} />)}</div>
+        : <EmptyState title="New products are on the way" text="Check back soon. The shelves are being stocked." icon="file" />}
+    </div>
+  </section>
+
+  {categories.length > 0 && (
+    <section class="section-tight">
+      <div class="container">
+        <h2>Shop by category</h2>
+        <div class="cats">
+          {categories.map((c) => <a class="cat card" href={`/shop?category=${encodeURIComponent(c)}`}><span>{c}</span><Icon name="arrow-right" size={18} /></a>)}
+        </div>
+      </div>
+    </section>
+  )}
+
+  <section class="section band" id="how">
+    <div class="container">
+      <h2 class="center">How it works</h2>
+      <ol class="steps">
+        <li class="card"><span class="step-icon"><Icon name="cart" /></span><h3>1. Choose &amp; pay</h3><p class="muted">Add products to your cart and check out securely with Stripe.</p></li>
+        <li class="card"><span class="step-icon"><Icon name="mail" /></span><h3>2. Check your email</h3><p class="muted">We send a receipt with a link that signs you straight in.</p></li>
+        <li class="card"><span class="step-icon"><Icon name="download" /></span><h3>3. Download any time</h3><p class="muted">Your purchases live in your Library. Download them whenever you need.</p></li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="section-tight">
+    <div class="container trust">
+      <div><Icon name="lock" /><span><strong>Secure checkout</strong><br /><span class="muted small">Powered by Stripe</span></span></div>
+      <div><Icon name="zap" /><span><strong>Instant delivery</strong><br /><span class="muted small">Files ready right after payment</span></span></div>
+      <div><Icon name="shield" /><span><strong>Fair refunds</strong><br /><a class="small" href="/refund-policy">Read our policy</a></span></div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container container-narrow">
+      <h2 class="center">Questions</h2>
+      <div class="faq">
+        {faqs.map((f) => <details><summary>{f.q}</summary><p class="muted">{f.a}</p></details>)}
+      </div>
+    </div>
+  </section>
+</Base>
+
+<style>
+  .hero { background: linear-gradient(180deg, var(--color-accent-soft) 0%, var(--color-bg) 100%); border-bottom: 1px solid var(--color-border); }
+  .hero-inner { padding-block: var(--space-9) var(--space-8); }
+  .hero-copy { max-width: 720px; display: grid; gap: var(--space-4); justify-items: start; }
+  .hero h1 { font-size: var(--text-4xl); margin: 0; }
+  .lead { font-size: var(--text-lg); margin: 0 0 var(--space-2); }
+  .section-head { margin-bottom: var(--space-5); }
+  .section-head h2 { margin: 0; }
+  .center { text-align: center; }
+  .cats { display: grid; gap: var(--space-3); grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+  .cat { display: flex; justify-content: space-between; align-items: center; padding: var(--space-4) var(--space-5); color: var(--color-text); text-decoration: none; font-weight: 600; min-height: 56px; }
+  .cat:hover { border-color: var(--color-accent); color: var(--color-accent); }
+  .steps { list-style: none; padding: 0; margin: var(--space-6) 0 0; display: grid; gap: var(--space-5); }
+  @media (min-width: 768px) { .steps { grid-template-columns: repeat(3, 1fr); } }
+  .steps li { padding: var(--space-6); }
+  .steps p { margin: 0; }
+  .step-icon { display: inline-grid; place-items: center; width: 44px; height: 44px; border-radius: var(--radius); background: var(--color-accent-soft); color: var(--color-accent); margin-bottom: var(--space-4); }
+  .trust { display: grid; gap: var(--space-5); grid-template-columns: 1fr; }
+  @media (min-width: 768px) { .trust { grid-template-columns: repeat(3, 1fr); } }
+  .trust > div { display: flex; gap: var(--space-3); align-items: flex-start; color: var(--color-accent); }
+  .trust strong { color: var(--color-text); }
+  .faq details { border-bottom: 1px solid var(--color-border); padding-block: var(--space-2); }
+  .faq summary { cursor: pointer; font-weight: 600; min-height: 44px; display: flex; align-items: center; }
+  .faq details p { margin: 0 0 var(--space-3); }
+</style>

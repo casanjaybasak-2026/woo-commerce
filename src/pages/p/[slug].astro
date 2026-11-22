@@ -1,0 +1,125 @@
+---
+import Base from "../../layouts/Base.astro";
+import Cover from "../../components/Cover.astro";
+import Price from "../../components/Price.astro";
+import Icon from "../../components/Icon.astro";
+import { getEnv } from "../../lib/env";
+import { getProductBySlug, listFiles } from "../../lib/db/products";
+import { renderMarkdown } from "../../lib/markdown";
+import { absoluteUrl, formatBytes, mediaUrl } from "../../lib/urls";
+
+const env = getEnv();
+const product = await getProductBySlug(env.DB, Astro.params.slug ?? "");
+if (!product) return Astro.rewrite("/404");
+const files = await listFiles(env.DB, product.id);
+const site = env.SITE_URL || Astro.url.origin;
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Product",
+  name: product.title,
+  description: product.shortDesc || product.title,
+  ...(product.coverKey ? { image: absoluteUrl(site, mediaUrl(product.coverKey)) } : {}),
+  ...(product.category ? { category: product.category } : {}),
+  offers: {
+    "@type": "Offer",
+    price: (product.priceCents / 100).toFixed(2),
+    priceCurrency: "USD",
+    availability: "https://schema.org/InStock",
+    url: absoluteUrl(site, `/p/${product.slug}`),
+  },
+};
+Astro.response.headers.set("Cache-Control", "public, max-age=60, s-maxage=300");
+---
+<Base title={product.title} description={product.shortDesc || undefined} ogImage={product.coverKey ? mediaUrl(product.coverKey) : undefined} jsonLd={jsonLd}>
+  <div class="container">
+    <nav class="crumbs small" aria-label="Breadcrumb">
+      <a href="/shop">Shop</a>
+      {product.category && <> / <a href={`/shop?category=${encodeURIComponent(product.category)}`}>{product.category}</a></>}
+    </nav>
+    <div class="product">
+      <Cover coverKey={product.coverKey} title={product.title} eager class="product-cover" />
+      <div class="buy">
+        {product.category && <span class="eyebrow">{product.category}</span>}
+        <h1>{product.title}</h1>
+        <Price cents={product.priceCents} compareAtCents={product.compareAtCents} size="lg" />
+        {product.shortDesc && <p class="lead">{product.shortDesc}</p>}
+        <div class="actions" data-product-id={product.id}>
+          <button class="btn btn-primary btn-lg btn-block" type="button" data-add>Add to cart</button>
+          <button class="btn btn-secondary btn-lg btn-block" type="button" data-buy>Buy now</button>
+          <p class="added small" data-added hidden role="status"><Icon name="check" size={16} /> Added. <a href="/cart">View cart</a></p>
+          <p class="error" data-error hidden role="alert"></p>
+        </div>
+        <ul class="trust-list">
+          <li><Icon name="zap" size={18} /> Instant download after payment</li>
+          <li><Icon name="lock" size={18} /> Secure checkout with Stripe</li>
+          <li><Icon name="download" size={18} /> Re-download any time from your Library</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="details">
+      {product.longDescMd && (
+        <section>
+          <h2>About this product</h2>
+          <div class="prose" set:html={renderMarkdown(product.longDescMd)} />
+        </section>
+      )}
+      {files.length > 0 && (
+        <section>
+          <h2>What's included</h2>
+          <ul class="files">
+            {files.map((f) => <li><Icon name="file" size={18} /><span>{f.displayName}</span><span class="muted small">{formatBytes(f.sizeBytes)}</span></li>)}
+          </ul>
+        </section>
+      )}
+    </div>
+  </div>
+</Base>
+
+<script>
+  import { addToCart } from "../../scripts/cart";
+  const box = document.querySelector<HTMLElement>("[data-product-id]")!;
+  const id = box.dataset.productId!;
+  const err = box.querySelector<HTMLElement>("[data-error]")!;
+  box.querySelector("[data-add]")!.addEventListener("click", () => {
+    addToCart(id);
+    box.querySelector<HTMLElement>("[data-added]")!.hidden = false;
+  });
+  box.querySelector<HTMLButtonElement>("[data-buy]")!.addEventListener("click", async (e) => {
+    const btn = e.currentTarget as HTMLButtonElement;
+    btn.setAttribute("aria-busy", "true");
+    btn.disabled = true;
+    err.hidden = true;
+    try {
+      const res = await fetch("/api/checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ids: [id] }) });
+      const data = await res.json();
+      if (!res.ok || !data.url) throw new Error(data.message || "Checkout is unavailable right now.");
+      location.href = data.url;
+    } catch (ex) {
+      err.textContent = (ex as Error).message;
+      err.hidden = false;
+      btn.removeAttribute("aria-busy");
+      btn.disabled = false;
+    }
+  });
+</script>
+
+<style>
+  .crumbs { padding-block: var(--space-5); color: var(--color-text-muted); }
+  .crumbs a { color: var(--color-text-muted); }
+  .product { display: grid; gap: var(--space-6); }
+  @media (min-width: 960px) { .product { grid-template-columns: 1.15fr 1fr; gap: var(--space-8); align-items: start; } }
+  .product :global(.product-cover) { border-radius: var(--radius-lg); border: 1px solid var(--color-border); }
+  .buy { display: grid; gap: var(--space-4); align-content: start; }
+  .buy h1 { margin: 0; }
+  .lead { font-size: var(--text-lg); color: var(--color-text-muted); margin: 0; }
+  .actions { display: grid; gap: var(--space-3); margin-top: var(--space-2); }
+  .added { display: flex; gap: var(--space-2); align-items: center; color: var(--color-success); margin: 0; }
+  .trust-list { list-style: none; padding: var(--space-4) 0 0; margin: 0; border-top: 1px solid var(--color-border); display: grid; gap: var(--space-2); color: var(--color-text-muted); font-size: var(--text-sm); }
+  .trust-list li { display: flex; gap: var(--space-2); align-items: center; }
+  .trust-list :global(svg) { color: var(--color-accent); }
+  .details { display: grid; gap: var(--space-7); margin-top: var(--space-8); max-width: 820px; }
+  .files { list-style: none; padding: 0; margin: 0; border: 1px solid var(--color-border); border-radius: var(--radius); }
+  .files li { display: grid; grid-template-columns: auto 1fr auto; gap: var(--space-3); align-items: center; padding: var(--space-3) var(--space-4); }
+  .files li + li { border-top: 1px solid var(--color-border); }
+</style>

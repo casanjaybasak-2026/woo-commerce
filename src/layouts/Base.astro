@@ -1,0 +1,47 @@
+---
+import "../styles/tokens.css";
+import "../styles/base.css";
+import Header from "../components/Header.astro";
+import Footer from "../components/Footer.astro";
+import { getEnv } from "../lib/env";
+
+interface Props { title?: string; description?: string; ogImage?: string; jsonLd?: object; noindex?: boolean }
+const env = getEnv();
+const storeName = env.STORE_NAME || "Shelfmade";
+const { title, description = `${storeName}: digital products, delivered instantly.`, ogImage, jsonLd, noindex = false } = Astro.props;
+const fullTitle = title ? `${title} · ${storeName}` : `${storeName} — Digital products, delivered instantly`;
+const canonical = new URL(Astro.url.pathname, env.SITE_URL || Astro.url.origin).toString();
+const og = ogImage ? new URL(ogImage, env.SITE_URL || Astro.url.origin).toString() : undefined;
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{fullTitle}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta name="theme-color" content="#ffffff" />
+    {noindex && <meta name="robots" content="noindex" />}
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content={storeName} />
+    <meta property="og:title" content={fullTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    {og && <meta property="og:image" content={og} />}
+    <meta name="twitter:card" content={og ? "summary_large_image" : "summary"} />
+    {jsonLd && <script type="application/ld+json" set:html={JSON.stringify(jsonLd).replace(/</g, "\\u003c")} />}
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <Header storeName={storeName} />
+    <main id="main">
+      <slot />
+    </main>
+    <Footer storeName={storeName} />
+    <script>
+      import "../scripts/cart";
+    </script>
+  </body>
+</html>

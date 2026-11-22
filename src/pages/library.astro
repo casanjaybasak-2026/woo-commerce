@@ -1,0 +1,66 @@
+---
+import Base from "../layouts/Base.astro";
+import Cover from "../components/Cover.astro";
+import Icon from "../components/Icon.astro";
+import EmptyState from "../components/EmptyState.astro";
+import { listLibrary } from "../lib/downloads";
+import { getEnv } from "../lib/env";
+import { formatBytes } from "../lib/urls";
+
+const customer = Astro.locals.customer;
+if (!customer) return Astro.redirect("/account/login");
+const items = await listLibrary(getEnv().DB, customer.id);
+Astro.response.headers.set("Cache-Control", "private, no-store");
+const dateFmt = new Intl.DateTimeFormat("en-US", { dateStyle: "medium" });
+---
+<Base title="My Library" noindex>
+  <div class="container">
+    <div class="page-head row between">
+      <div>
+        <h1>My Library</h1>
+        <p class="muted">Signed in as <strong>{customer.email}</strong></p>
+      </div>
+      <form method="post" action="/account/logout"><button class="btn btn-secondary" type="submit">Sign out</button></form>
+    </div>
+
+    {items.length === 0 ? (
+      <EmptyState title="No purchases yet" text="Products you buy will appear here, ready to download." href="/shop" cta="Browse the shop" icon="download" />
+    ) : (
+      <ul class="library">
+        {items.map(({ product, files, purchasedAt }) => (
+          <li class="item card">
+            <Cover coverKey={product.coverKey} title={product.title} class="thumb" />
+            <div class="info">
+              <h2>{product.title}</h2>
+              <p class="muted small">Purchased {dateFmt.format(new Date(purchasedAt))}</p>
+              {files.length === 0 ? (
+                <p class="muted small">Files are being prepared. Check back soon.</p>
+              ) : (
+                <ul class="files">
+                  {files.map((f) => (
+                    <li>
+                      <span class="fname"><Icon name="file" size={18} />{f.displayName}<span class="muted small">{formatBytes(f.sizeBytes)}</span></span>
+                      <a class="btn btn-primary" href={`/download/${f.id}`} download><Icon name="download" size={18} /> Download</a>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </li>
+        ))}
+      </ul>
+    )}
+    <p class="muted small help-line">Trouble downloading? <a href="/contact">Contact us</a>.</p>
+  </div>
+</Base>
+<style>
+  .library { list-style: none; padding: 0; margin: 0; display: grid; gap: var(--space-5); }
+  .item { display: grid; gap: var(--space-5); padding: var(--space-5); }
+  @media (min-width: 768px) { .item { grid-template-columns: 200px 1fr; } }
+  .item :global(.thumb) { border-radius: var(--radius); }
+  .info h2 { font-size: var(--text-xl); margin-bottom: var(--space-1); }
+  .files { list-style: none; padding: 0; margin: var(--space-4) 0 0; display: grid; gap: var(--space-2); }
+  .files li { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--space-3); padding: var(--space-3); border: 1px solid var(--color-border); border-radius: var(--radius); }
+  .fname { display: inline-flex; align-items: center; gap: var(--space-2); font-weight: 600; word-break: break-word; }
+  .help-line { margin-top: var(--space-6); }
+</style>

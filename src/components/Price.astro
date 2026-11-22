@@ -1,0 +1,18 @@
+---
+import { formatUsd } from "../lib/money";
+interface Props { cents: number; compareAtCents?: number | null; size?: "md" | "lg" }
+const { cents, compareAtCents, size = "md" } = Astro.props;
+const onSale = compareAtCents != null && compareAtCents > cents;
+const pct = onSale ? Math.round((1 - cents / compareAtCents!) * 100) : 0;
+---
+<span class:list={["price", `price-${size}`]}>
+  <span class="now">{formatUsd(cents)}</span>
+  {onSale && <s class="was"><span class="sr-only">Was </span>{formatUsd(compareAtCents!)}</s>}
+  {onSale && <span class="badge badge-danger">Save {pct}%</span>}
+</span>
+<style>
+  .price { display: inline-flex; align-items: baseline; gap: var(--space-2); flex-wrap: wrap; }
+  .now { font-weight: 700; }
+  .price-lg .now { font-size: var(--text-2xl); }
+  .was { color: var(--color-text-muted); font-size: .9em; }
+</style>

@@ -1,0 +1,64 @@
+---
+import Base from "../../layouts/Base.astro";
+import Icon from "../../components/Icon.astro";
+const publicId = Astro.url.searchParams.get("order") ?? "";
+---
+<Base title="Order received" noindex>
+  <div class="container container-narrow">
+    <div class="status card" data-order={publicId}>
+      <div data-state="waiting">
+        <div class="spinner" aria-hidden="true"></div>
+        <h1>Confirming your payment…</h1>
+        <p class="muted" role="status">This usually takes a few seconds. Please keep this page open.</p>
+      </div>
+      <div data-state="paid" hidden>
+        <div class="ok"><Icon name="check" size={32} /></div>
+        <h1>Thank you! Your order is ready.</h1>
+        <p class="muted">We've emailed you a receipt with a button that opens your Library. Check your inbox (and spam folder, just in case).</p>
+        <div class="row center-row">
+          <a class="btn btn-primary" href="/library">Go to my Library</a>
+          <a class="btn btn-secondary" href="/shop">Keep shopping</a>
+        </div>
+      </div>
+      <div data-state="timeout" hidden>
+        <div class="ok warn"><Icon name="mail" size={32} /></div>
+        <h1>Payment received?</h1>
+        <p class="muted">Your email may take a minute — or sign in to your Library with the email you used at checkout.</p>
+        <div class="row center-row">
+          <a class="btn btn-primary" href="/account/login">Sign in to my Library</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</Base>
+
+<script>
+  import { clearCart } from "../../scripts/cart";
+  const root = document.querySelector<HTMLElement>("[data-order]")!;
+  const id = root.dataset.order;
+  const show = (s: string) => root.querySelectorAll<HTMLElement>("[data-state]").forEach((el) => (el.hidden = el.dataset.state !== s));
+  const started = Date.now();
+  async function poll() {
+    if (!id) return show("timeout");
+    try {
+      const r = await fetch(`/api/orders/${encodeURIComponent(id)}/status`);
+      const { status } = await r.json();
+      if (status === "paid") {
+        clearCart();
+        return show("paid");
+      }
+    } catch {}
+    if (Date.now() - started > 60_000) return show("timeout");
+    setTimeout(poll, 2000);
+  }
+  poll();
+</script>
+
+<style>
+  .status { margin-top: var(--space-8); padding: var(--space-8) var(--space-6); text-align: center; }
+  .status h1 { font-size: var(--text-2xl); margin-bottom: var(--space-3); }
+  .spinner { width: 44px; height: 44px; margin: 0 auto var(--space-5); border-radius: 50%; border: 4px solid var(--color-accent-soft); border-top-color: var(--color-accent); animation: spin .9s linear infinite; }
+  .ok { width: 64px; height: 64px; margin: 0 auto var(--space-5); border-radius: 50%; display: grid; place-items: center; background: var(--color-success-soft); color: var(--color-success); }
+  .ok.warn { background: var(--color-accent-soft); color: var(--color-accent); }
+  .center-row { justify-content: center; }
+</style>

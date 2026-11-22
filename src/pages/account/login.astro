@@ -1,0 +1,58 @@
+---
+import Base from "../../layouts/Base.astro";
+import { requestLogin } from "../../lib/auth/login";
+import { getEnv } from "../../lib/env";
+import { mailer, now, siteUrl } from "../../lib/services";
+
+if (Astro.locals.customer) return Astro.redirect("/library");
+const env = getEnv();
+let sent = false;
+let email = "";
+let fieldError = "";
+if (Astro.request.method === "POST") {
+  const form = await Astro.request.formData();
+  email = String(form.get("email") ?? "").trim();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    fieldError = "Enter the email address you used at checkout.";
+  } else {
+    try {
+      await requestLogin({ db: env.DB, mailer: mailer(env), siteUrl: siteUrl(env), storeName: env.STORE_NAME, now }, email);
+    } catch (err) {
+      console.error("[login] request failed", err);
+    }
+    sent = true;
+  }
+}
+const expired = Astro.url.searchParams.get("error") === "expired";
+---
+<Base title="Sign in" noindex>
+  <div class="container container-narrow">
+    <div class="login panel">
+      <h1>Sign in to your Library</h1>
+      {sent ? (
+        <div class="notice notice-success" role="status">
+          <p><strong>Check your email.</strong> If you've bought from us with <strong>{email}</strong>, a sign-in link is on its way. It works once and expires in 15 minutes.</p>
+        </div>
+      ) : (
+        <>
+          {expired && <div class="notice notice-warning" role="alert"><p>That sign-in link has expired or was already used. Request a new one below.</p></div>}
+          <p class="muted">No password needed. Enter the email you used at checkout and we'll send you a sign-in link.</p>
+          <form method="post" novalidate>
+            <div class="field">
+              <label for="email">Email address</label>
+              <input id="email" name="email" type="email" class="input" autocomplete="email" required value={email}
+                aria-invalid={fieldError ? "true" : undefined} aria-describedby={fieldError ? "email-error" : undefined} />
+              {fieldError && <p id="email-error" class="error">{fieldError}</p>}
+            </div>
+            <button class="btn btn-primary btn-block" type="submit">Email me a sign-in link</button>
+          </form>
+        </>
+      )}
+      <p class="muted small">Haven't bought anything yet? <a href="/shop">Browse the shop</a>.</p>
+    </div>
+  </div>
+</Base>
+<style>
+  .login { margin-top: var(--space-8); max-width: 480px; margin-inline: auto; }
+  .login h1 { font-size: var(--text-2xl); }
+</style>

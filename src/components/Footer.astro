@@ -1,0 +1,43 @@
+---
+interface Props { storeName: string }
+const { storeName } = Astro.props;
+const year = new Date().getFullYear();
+---
+<footer class="site-footer band">
+  <div class="container footer-grid">
+    <div>
+      <a href="/" class="footer-logo">{storeName}</a>
+      <p class="muted small">Digital products you can download instantly and keep forever in your Library.</p>
+    </div>
+    <nav aria-label="Shop">
+      <h2 class="footer-h">Shop</h2>
+      <a href="/shop">All products</a>
+      <a href="/cart">Cart</a>
+      <a href="/library">My Library</a>
+    </nav>
+    <nav aria-label="Help">
+      <h2 class="footer-h">Help</h2>
+      <a href="/about">About</a>
+      <a href="/contact">Contact</a>
+      <a href="/account/login">Sign in</a>
+    </nav>
+    <nav aria-label="Legal">
+      <h2 class="footer-h">Legal</h2>
+      <a href="/terms">Terms</a>
+      <a href="/privacy">Privacy</a>
+      <a href="/refund-policy">Refund policy</a>
+    </nav>
+  </div>
+  <div class="container footer-bottom small muted">© {year} {storeName}. Payments processed securely by Stripe.</div>
+</footer>
+<style>
+  .site-footer { margin-top: var(--space-9); border-top: 1px solid var(--color-border); }
+  .footer-grid { display: grid; gap: var(--space-6); padding-block: var(--space-7) var(--space-5); grid-template-columns: 1fr 1fr; }
+  .footer-grid > div { grid-column: 1 / -1; }
+  @media (min-width: 768px) { .footer-grid { grid-template-columns: 2fr 1fr 1fr 1fr; } .footer-grid > div { grid-column: auto; } }
+  .footer-logo { font-weight: 700; font-size: var(--text-lg); color: var(--color-text); text-decoration: none; display: inline-block; margin-bottom: var(--space-2); }
+  .footer-h { font-size: var(--text-sm); text-transform: uppercase; letter-spacing: .06em; color: var(--color-text-muted); margin-bottom: var(--space-3); }
+  nav a { display: block; color: var(--color-text); text-decoration: none; padding-block: 6px; font-size: var(--text-sm); }
+  nav a:hover { color: var(--color-accent); }
+  .footer-bottom { border-top: 1px solid var(--color-border); padding-block: var(--space-4); }
+</style>

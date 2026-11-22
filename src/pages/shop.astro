@@ -1,0 +1,70 @@
+---
+import Base from "../layouts/Base.astro";
+import ProductCard from "../components/ProductCard.astro";
+import EmptyState from "../components/EmptyState.astro";
+import Icon from "../components/Icon.astro";
+import { getEnv } from "../lib/env";
+import { listCategories, listPublished, type SortKey } from "../lib/db/products";
+
+const env = getEnv();
+const q = (Astro.url.searchParams.get("q") ?? "").slice(0, 100);
+const category = Astro.url.searchParams.get("category") ?? "";
+const sortParam = Astro.url.searchParams.get("sort") ?? "";
+const sort = (["newest", "price_asc", "price_desc"] as const).includes(sortParam as SortKey) ? (sortParam as SortKey) : undefined;
+const [products, categories] = await Promise.all([listPublished(env.DB, { q, category: category || undefined, sort }), listCategories(env.DB)]);
+const link = (c: string) => {
+  const u = new URLSearchParams();
+  if (c) u.set("category", c);
+  if (q) u.set("q", q);
+  if (sort) u.set("sort", sort);
+  const s = u.toString();
+  return "/shop" + (s ? "?" + s : "");
+};
+---
+<Base title={category || "Shop"} description="Browse all digital products.">
+  <div class="container">
+    <div class="page-head">
+      <h1>{category || "All products"}</h1>
+      <p class="muted">{products.length} product{products.length === 1 ? "" : "s"}{q && <> matching “{q}”</>}</p>
+    </div>
+
+    <form class="filters" method="get" action="/shop" role="search">
+      {category && <input type="hidden" name="category" value={category} />}
+      <div class="search">
+        <label for="q" class="sr-only">Search products</label>
+        <Icon name="search" />
+        <input id="q" name="q" type="search" class="input" placeholder="Search products" value={q} />
+      </div>
+      <label for="sort" class="sr-only">Sort by</label>
+      <select id="sort" name="sort" class="select sort">
+        <option value="" selected={!sort}>Featured</option>
+        <option value="newest" selected={sort === "newest"}>Newest</option>
+        <option value="price_asc" selected={sort === "price_asc"}>Price: low to high</option>
+        <option value="price_desc" selected={sort === "price_desc"}>Price: high to low</option>
+      </select>
+      <button class="btn btn-secondary" type="submit">Apply</button>
+    </form>
+
+    {categories.length > 0 && (
+      <nav class="chips" aria-label="Categories">
+        <a href={link("")} class:list={["chip", { active: !category }]} aria-current={!category ? "page" : undefined}>All</a>
+        {categories.map((c) => <a href={link(c)} class:list={["chip", { active: c === category }]} aria-current={c === category ? "page" : undefined}>{c}</a>)}
+      </nav>
+    )}
+
+    {products.length > 0
+      ? <div class="grid grid-4">{products.map((p) => <ProductCard product={p} />)}</div>
+      : <EmptyState icon="search" title="No products found" text="Try a different search or category." href="/shop" cta="Clear filters" />}
+  </div>
+</Base>
+<style>
+  .filters { display: flex; flex-wrap: wrap; gap: var(--space-3); margin-bottom: var(--space-4); }
+  .search { position: relative; flex: 1 1 260px; }
+  .search :global(svg) { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--color-text-muted); pointer-events: none; }
+  .search .input { padding-left: 40px; }
+  .sort { width: auto; flex: 0 1 220px; }
+  .chips { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-bottom: var(--space-6); }
+  .chip { display: inline-flex; align-items: center; min-height: 40px; padding: 0 var(--space-4); border-radius: var(--radius-pill); border: 1px solid var(--color-border-strong); color: var(--color-text); text-decoration: none; font-size: var(--text-sm); font-weight: 600; }
+  .chip:hover { border-color: var(--color-accent); color: var(--color-accent); }
+  .chip.active { background: var(--color-accent-soft); border-color: var(--color-accent); color: var(--color-accent-hover); }
+</style>
