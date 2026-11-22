@@ -1,6 +1,6 @@
 ---
 import Icon from "./Icon.astro";
-interface Props { title: string; text?: string; href?: string; cta?: string; icon?: "cart" | "file" | "search" }
+interface Props { title: string; text?: string; href?: string; cta?: string; icon?: "cart" | "file" | "search" | "download" }
 const { title, text, href, cta, icon = "file" } = Astro.props;
 ---
 <div class="empty">

@@ -1,0 +1,24 @@
+---
+import LegalPage from "../components/LegalPage.astro";
+import { getEnv } from "../lib/env";
+const store = getEnv().STORE_NAME;
+---
+<LegalPage title="Terms of Service">
+  <p>These terms apply to purchases from {store} ("we", "us"), operated by [BUSINESS NAME], [ADDRESS]. By buying from us you agree to them.</p>
+  <h2>1. Digital products</h2>
+  <p>We sell downloadable digital products. After payment you receive access through your Library at this website. No physical goods are shipped.</p>
+  <h2>2. Licence</h2>
+  <p>When you buy a product you get a personal, non-exclusive, non-transferable licence to use it for your own [personal / commercial] purposes. You may not resell, redistribute, share or publish the files, in whole or in part, unless the product page says otherwise.</p>
+  <h2>3. Prices and payment</h2>
+  <p>Prices are in US dollars. Payments are processed by Stripe. We never see or store your full card details. Applicable taxes may be added at checkout.</p>
+  <h2>4. Access and downloads</h2>
+  <p>You can download your purchases from your Library. To protect our files, downloads are limited to a reasonable number per day. We aim to keep purchases available for as long as we operate the store, and recommend you keep a local copy.</p>
+  <h2>5. Refunds</h2>
+  <p>See our <a href="/refund-policy">Refund Policy</a>. If a payment is refunded or reversed, access to the related product ends.</p>
+  <h2>6. Accounts</h2>
+  <p>You sign in using a link sent to your email. Keep access to your email account secure; anyone with access to it can sign in to your Library.</p>
+  <h2>7. Liability</h2>
+  <p>Products are provided "as is". To the extent permitted by law, our total liability for any claim is limited to the amount you paid for the product concerned.</p>
+  <h2>8. Changes and contact</h2>
+  <p>We may update these terms; the version in force at the time of purchase applies to that purchase. Questions: [CONTACT EMAIL]. These terms are governed by the laws of [JURISDICTION].</p>
+</LegalPage>

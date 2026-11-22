@@ -1,0 +1,30 @@
+---
+import Admin from "../../../layouts/Admin.astro";
+import { getEnv } from "../../../lib/env";
+import { listAllProducts } from "../../../lib/db/products";
+import { formatUsd } from "../../../lib/money";
+import { mediaUrl } from "../../../lib/urls";
+const products = await listAllProducts(getEnv().DB);
+const msg = Astro.url.searchParams.get("msg");
+const messages: Record<string, string> = { deleted: "Product deleted.", "soft-deleted": "Product removed from the store. Existing buyers keep access." };
+---
+<Admin title="Products">
+  <div class="row between"><h1>Products</h1><a class="btn btn-primary" href="/admin/products/new">Add product</a></div>
+  {msg && messages[msg] && <div class="notice notice-success" role="status"><p>{messages[msg]}</p></div>}
+  {products.length === 0 ? <p class="muted">No products yet. <a href="/admin/products/new">Add your first product</a>.</p> : (
+    <div class="table-wrap"><table class="table">
+      <thead><tr><th></th><th>Title</th><th>Category</th><th>Status</th><th class="num">Price</th></tr></thead>
+      <tbody>
+        {products.map((p) => (
+          <tr>
+            <td>{p.coverKey ? <img class="thumb-sm" src={mediaUrl(p.coverKey)} alt="" /> : <div class="thumb-sm" />}</td>
+            <td><a href={`/admin/products/${p.id}`}><strong>{p.title}</strong></a><br /><span class="muted small">/p/{p.slug}</span></td>
+            <td>{p.category ?? "—"}</td>
+            <td>{p.published ? <span class="badge badge-success">Published</span> : <span class="badge">Draft</span>}</td>
+            <td class="num">{formatUsd(p.priceCents)}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table></div>
+  )}
+</Admin>

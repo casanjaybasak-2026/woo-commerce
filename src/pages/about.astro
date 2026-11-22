@@ -1,0 +1,11 @@
+---
+import LegalPage from "../components/LegalPage.astro";
+import { getEnv } from "../lib/env";
+const store = getEnv().STORE_NAME;
+---
+<LegalPage title={`About ${store}`} updated="—">
+  <p>{store} makes practical digital products, such as templates, guides and toolkits, that save you time. [TELL YOUR STORY: who you are, why you make these products, and who they're for.]</p>
+  <h2>How buying works</h2>
+  <p>Pay securely with Stripe, get an email with a sign-in link, and download from your Library whenever you like. No passwords to remember.</p>
+  <p><a class="btn btn-primary" href="/shop">Browse the shop</a></p>
+</LegalPage>

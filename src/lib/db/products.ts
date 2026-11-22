@@ -113,6 +113,8 @@ export async function listCategories(db: D1Database): Promise<string[]> {
 
 export interface ProductInput {
   id?: string;
+  /** Id to use when inserting (lets callers key R2 objects before the row exists). */
+  newId?: string;
   slug?: string;
   title: string;
   category: string | null;
@@ -139,7 +141,7 @@ async function uniqueSlug(db: D1Database, base: string, exceptId?: string): Prom
 
 export async function saveProduct(db: D1Database, input: ProductInput, now: Date): Promise<Product> {
   const ts = now.toISOString();
-  const id = input.id ?? crypto.randomUUID();
+  const id = input.id ?? input.newId ?? crypto.randomUUID();
   const slug = await uniqueSlug(db, slugify(input.slug?.trim() || input.title), input.id);
   const fields = [
     slug, input.title.trim(), input.category?.trim() || null, input.shortDesc, input.longDescMd,

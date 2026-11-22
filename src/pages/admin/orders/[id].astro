@@ -1,0 +1,52 @@
+---
+import Admin from "../../../layouts/Admin.astro";
+import { getEnv } from "../../../lib/env";
+import { getOrderById, listOrderItems } from "../../../lib/db/orders";
+import { formatUsd } from "../../../lib/money";
+import { mailer, now, siteUrl } from "../../../lib/services";
+import { sendOrderEmail } from "../../../lib/webhook";
+
+const env = getEnv();
+const order = await getOrderById(env.DB, Astro.params.id!);
+if (!order) return Astro.redirect("/admin/orders");
+let notice = "";
+let error = "";
+if (Astro.request.method === "POST") {
+  try {
+    await sendOrderEmail({ db: env.DB, mailer: mailer(env), siteUrl: siteUrl(env), storeName: env.STORE_NAME, now }, order.id);
+    notice = `Access email sent to ${order.customerEmail}.`;
+  } catch (e) {
+    error = `Couldn't send the email: ${(e as Error).message}`;
+  }
+}
+const items = await listOrderItems(env.DB, order.id);
+const dt = new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" });
+const stripeMode = env.STRIPE_SECRET_KEY?.startsWith("sk_test") ? "test/" : "";
+---
+<Admin title={`Order ${order.publicId}`}>
+  <p><a href="/admin/orders">← Orders</a></p>
+  <h1>Order {order.publicId}</h1>
+  {notice && <div class="notice notice-success" role="status"><p>{notice}</p></div>}
+  {error && <div class="notice notice-danger" role="alert"><p>{error}</p></div>}
+  <div class="stats">
+    <div class="card stat"><div class="muted small">Status</div><div class="v" style="font-size:var(--text-xl)">{order.status}</div></div>
+    <div class="card stat"><div class="muted small">Customer</div><div style="font-weight:600;word-break:break-all">{order.customerEmail ?? "—"}</div></div>
+    <div class="card stat"><div class="muted small">Created</div><div>{dt.format(new Date(order.createdAt))}</div>{order.paidAt && <div class="muted small">Paid {dt.format(new Date(order.paidAt))}</div>}</div>
+  </div>
+  <div class="table-wrap"><table class="table">
+    <thead><tr><th>Item</th><th class="num">Price</th></tr></thead>
+    <tbody>
+      {items.map((i) => <tr><td>{i.titleSnapshot}</td><td class="num">{formatUsd(i.priceCentsSnapshot)}</td></tr>)}
+      <tr><td>Subtotal</td><td class="num">{formatUsd(order.subtotalCents)}</td></tr>
+      {order.discountCents > 0 && <tr><td>Discount</td><td class="num">-{formatUsd(order.discountCents)}</td></tr>}
+      <tr><td><strong>Total</strong></td><td class="num"><strong>{formatUsd(order.totalCents)}</strong></td></tr>
+    </tbody>
+  </table></div>
+  <div class="row" style="margin-top:var(--space-5)">
+    {order.status === "paid" && (
+      <form method="post"><button class="btn btn-primary" type="submit">Resend access email</button></form>
+    )}
+    {order.stripePaymentIntent && <a class="btn btn-secondary" href={`https://dashboard.stripe.com/${stripeMode}payments/${order.stripePaymentIntent}`} target="_blank" rel="noopener">Open in Stripe ↗</a>}
+  </div>
+  <p class="muted small" style="margin-top:var(--space-4)">To refund, use "Refund" in Stripe. A full refund automatically removes the buyer's access.</p>
+</Admin>

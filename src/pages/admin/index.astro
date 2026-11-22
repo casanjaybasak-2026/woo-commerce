@@ -1,0 +1,24 @@
+---
+import Admin from "../../layouts/Admin.astro";
+import { getEnv } from "../../lib/env";
+import { listOrders, orderStats } from "../../lib/db/orders";
+import { formatUsd } from "../../lib/money";
+const db = getEnv().DB;
+const [stats, recent] = await Promise.all([orderStats(db, new Date(Date.now() - 30 * 86_400_000)), listOrders(db, { status: "paid", limit: 10 })]);
+const dt = new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" });
+---
+<Admin title="Dashboard">
+  <div class="row between"><h1>Dashboard</h1><a class="btn btn-primary" href="/admin/products/new">Add product</a></div>
+  <div class="stats">
+    <div class="card stat"><div class="muted small">Revenue (30 days)</div><div class="v">{formatUsd(stats.revenueCents30d)}</div></div>
+    <div class="card stat"><div class="muted small">Paid orders (all time)</div><div class="v">{stats.paidOrders}</div></div>
+    <div class="card stat"><div class="muted small">Products</div><div class="v">{stats.products}</div></div>
+  </div>
+  <h2>Recent paid orders</h2>
+  {recent.length === 0 ? <p class="muted">No paid orders yet.</p> : (
+    <div class="table-wrap"><table class="table">
+      <thead><tr><th>Order</th><th>Customer</th><th>Date</th><th class="num">Total</th></tr></thead>
+      <tbody>{recent.map((o) => <tr><td><a href={`/admin/orders/${o.id}`}>{o.publicId}</a></td><td>{o.customerEmail}</td><td>{o.paidAt && dt.format(new Date(o.paidAt))}</td><td class="num">{formatUsd(o.totalCents)}</td></tr>)}</tbody>
+    </table></div>
+  )}
+</Admin>

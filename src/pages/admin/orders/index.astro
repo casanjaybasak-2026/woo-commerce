@@ -1,0 +1,45 @@
+---
+import Admin from "../../../layouts/Admin.astro";
+import { getEnv } from "../../../lib/env";
+import { listOrders } from "../../../lib/db/orders";
+import { formatUsd } from "../../../lib/money";
+import type { OrderStatus } from "../../../lib/types";
+
+const statuses: OrderStatus[] = ["paid", "pending", "refunded", "expired"];
+const s = Astro.url.searchParams.get("status") as OrderStatus | null;
+const status = s && statuses.includes(s) ? s : undefined;
+const page = Math.max(1, Number(Astro.url.searchParams.get("page")) || 1);
+const PER = 50;
+const orders = await listOrders(getEnv().DB, { status, limit: PER + 1, offset: (page - 1) * PER });
+const hasMore = orders.length > PER;
+const dt = new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" });
+const tone: Record<OrderStatus, string> = { paid: "badge-success", pending: "badge-warning", refunded: "badge-danger", expired: "" };
+const q = (o: Record<string, string | number | undefined>) => "?" + new URLSearchParams(Object.entries(o).filter(([, v]) => v !== undefined) as [string, string][]).toString();
+---
+<Admin title="Orders">
+  <h1>Orders</h1>
+  <nav class="row" aria-label="Filter by status" style="margin-bottom:var(--space-4)">
+    <a class:list={["btn", status ? "btn-secondary" : "btn-primary"]} href="/admin/orders">All</a>
+    {statuses.map((st) => <a class:list={["btn", status === st ? "btn-primary" : "btn-secondary"]} href={q({ status: st })}>{st[0].toUpperCase() + st.slice(1)}</a>)}
+  </nav>
+  {orders.length === 0 ? <p class="muted">No orders here yet.</p> : (
+    <div class="table-wrap"><table class="table">
+      <thead><tr><th>Order</th><th>Customer</th><th>Status</th><th>Created</th><th class="num">Total</th></tr></thead>
+      <tbody>
+        {orders.slice(0, PER).map((o) => (
+          <tr>
+            <td><a href={`/admin/orders/${o.id}`}>{o.publicId}</a></td>
+            <td>{o.customerEmail ?? <span class="muted">—</span>}</td>
+            <td><span class:list={["badge", tone[o.status]]}>{o.status}</span></td>
+            <td>{dt.format(new Date(o.createdAt))}</td>
+            <td class="num">{formatUsd(o.totalCents)}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table></div>
+  )}
+  <div class="row" style="margin-top:var(--space-4)">
+    {page > 1 && <a class="btn btn-secondary" href={q({ status, page: page - 1 })}>← Newer</a>}
+    {hasMore && <a class="btn btn-secondary" href={q({ status, page: page + 1 })}>Older →</a>}
+  </div>
+</Admin>

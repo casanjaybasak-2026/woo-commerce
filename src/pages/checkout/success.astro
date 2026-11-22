@@ -42,7 +42,7 @@ const publicId = Astro.url.searchParams.get("order") ?? "";
     if (!id) return show("timeout");
     try {
       const r = await fetch(`/api/orders/${encodeURIComponent(id)}/status`);
-      const { status } = await r.json();
+      const { status } = (await r.json()) as { status: string };
       if (status === "paid") {
         clearCart();
         return show("paid");

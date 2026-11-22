@@ -1,0 +1,26 @@
+---
+import LegalPage from "../components/LegalPage.astro";
+import { getEnv } from "../lib/env";
+const store = getEnv().STORE_NAME;
+---
+<LegalPage title="Privacy Policy">
+  <p>This policy explains what {store} ([BUSINESS NAME], [ADDRESS]) collects and why. Contact: [CONTACT EMAIL].</p>
+  <h2>What we collect</h2>
+  <ul>
+    <li><strong>Email address</strong>: to deliver your purchases, send receipts and sign-in links.</li>
+    <li><strong>Order history</strong>: what you bought, when, and the amount paid.</li>
+    <li><strong>Download log</strong>: which file you downloaded and when, to enforce fair-use download limits.</li>
+    <li><strong>Payment details</strong> are collected and stored by Stripe, not by us.</li>
+  </ul>
+  <p>We use a single, strictly necessary cookie to keep you signed in. We do not use advertising or tracking cookies. Your cart is stored only in your own browser.</p>
+  <h2>Who processes your data</h2>
+  <ul>
+    <li><strong>Stripe</strong>: payment processing.</li>
+    <li><strong>Cloudflare</strong>: website hosting, database and file storage.</li>
+    <li><strong>Resend</strong>: sending transactional emails.</li>
+  </ul>
+  <h2>How long we keep it</h2>
+  <p>We keep order records for as long as needed to provide your Library and to meet tax and accounting obligations ([RETENTION PERIOD]). Sign-in links expire after use; sessions expire after 30 days.</p>
+  <h2>Your rights</h2>
+  <p>You can ask us to access, correct or delete your data by emailing [CONTACT EMAIL]. Deleting your data also removes access to your Library. Depending on where you live (e.g. GDPR, CCPA), you may have additional rights.</p>
+</LegalPage>

@@ -9,7 +9,8 @@ export function siteUrl(env: Env = getEnv()): string {
 
 export function mailer(env: Env = getEnv()): Mailer {
   if (!env.RESEND_API_KEY) {
-    if (env.ENVIRONMENT === "production") throw new Error("RESEND_API_KEY is not set");
+    // Never block an order on email config; log loudly so it shows in Workers logs.
+    if (env.ENVIRONMENT === "production") console.error("[email] RESEND_API_KEY is not set: emails are only logged, not sent");
     return new ConsoleMailer();
   }
   return new ResendMailer(env.RESEND_API_KEY, env.EMAIL_FROM || `${env.STORE_NAME} <onboarding@resend.dev>`);

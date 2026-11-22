@@ -1,0 +1,16 @@
+---
+import Base from "../layouts/Base.astro";
+interface Props { title: string; updated?: string; template?: boolean }
+const { title, updated = "[DATE]", template = true } = Astro.props;
+---
+<Base title={title}>
+  <div class="container container-narrow">
+    <div class="page-head"><h1>{title}</h1><p class="muted small">Last updated: {updated}</p></div>
+    {template && (
+      <div class="notice notice-warning" role="note">
+        <p><strong>Template:</strong> replace every [PLACEHOLDER] with your details and have this page reviewed before launch. This text is a starting point, not legal advice.</p>
+      </div>
+    )}
+    <article class="prose"><slot /></article>
+  </div>
+</Base>

@@ -46,7 +46,7 @@ import Icon from "../components/Icon.astro";
       return;
     }
     const res = await fetch("/api/cart-preview", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ids }) });
-    const data: { lines: Line[]; subtotalCents: number; missing: string[] } = await res.json();
+    const data = (await res.json()) as { lines: Line[]; subtotalCents: number; missing: string[] };
     if (data.missing.length) {
       setCart(ids.filter((id) => !data.missing.includes(id)));
       $("[data-removed]").hidden = false;
@@ -78,7 +78,9 @@ import Icon from "../components/Icon.astro";
           removeFromCart(l.productId);
           render();
         });
-        li.append(a, price, rm);
+        li.appendChild(a);
+        li.appendChild(price);
+        li.appendChild(rm);
         return li;
       }),
     );
@@ -93,7 +95,7 @@ import Icon from "../components/Icon.astro";
     err.hidden = true;
     try {
       const res = await fetch("/api/checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ids: getCart() }) });
-      const data = await res.json();
+      const data = (await res.json()) as { url?: string; message?: string };
       if (!res.ok || !data.url) throw new Error(data.message || "Checkout is unavailable right now. Please try again.");
       location.href = data.url;
     } catch (ex) {

@@ -1,0 +1,57 @@
+---
+import "../styles/tokens.css";
+import "../styles/base.css";
+import { getEnv } from "../lib/env";
+interface Props { title: string }
+const { title } = Astro.props;
+const storeName = getEnv().STORE_NAME || "Shelfmade";
+const path = Astro.url.pathname;
+const nav = [
+  { href: "/admin", label: "Dashboard", match: (p: string) => p === "/admin" || p === "/admin/" },
+  { href: "/admin/products", label: "Products", match: (p: string) => p.startsWith("/admin/products") },
+  { href: "/admin/orders", label: "Orders", match: (p: string) => p.startsWith("/admin/orders") },
+];
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>{title} · {storeName} admin</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  </head>
+  <body class="admin">
+    <a class="skip-link" href="#main">Skip to content</a>
+    <aside class="side">
+      <a href="/admin" class="brand">{storeName} <span class="badge">Admin</span></a>
+      <nav aria-label="Admin">
+        {nav.map((n) => <a href={n.href} aria-current={n.match(path) ? "page" : undefined}>{n.label}</a>)}
+        <a href="/" target="_blank" rel="noopener">View store ↗</a>
+      </nav>
+      <p class="muted small who">{Astro.locals.adminEmail}</p>
+    </aside>
+    <main id="main" class="content">
+      <slot />
+    </main>
+  </body>
+</html>
+<style is:global>
+  body.admin { display: grid; grid-template-columns: 1fr; background: var(--color-surface); min-height: 100vh; }
+  @media (min-width: 900px) { body.admin { grid-template-columns: 240px 1fr; } }
+  .side { background: var(--color-bg); border-right: 1px solid var(--color-border); padding: var(--space-5); display: flex; flex-direction: column; gap: var(--space-5); }
+  .brand { font-weight: 700; font-size: var(--text-lg); color: var(--color-text); text-decoration: none; display: flex; gap: var(--space-2); align-items: center; }
+  .side nav { display: flex; flex-wrap: wrap; gap: var(--space-1); }
+  @media (min-width: 900px) { .side nav { flex-direction: column; } .who { margin-top: auto; } }
+  .side nav a { padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); color: var(--color-text); text-decoration: none; font-weight: 500; }
+  .side nav a:hover { background: var(--color-surface); }
+  .side nav a[aria-current="page"] { background: var(--color-accent-soft); color: var(--color-accent-hover); font-weight: 600; }
+  .content { padding: var(--space-6) var(--gutter); max-width: 1100px; width: 100%; }
+  .content h1 { font-size: var(--text-2xl); }
+  .stats { display: grid; gap: var(--space-4); grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); margin-bottom: var(--space-6); }
+  .stat { padding: var(--space-5); }
+  .stat .v { font-size: var(--text-2xl); font-weight: 700; }
+  .form-grid { display: grid; gap: 0 var(--space-5); }
+  @media (min-width: 700px) { .form-grid { grid-template-columns: 1fr 1fr; } .form-grid .full { grid-column: 1 / -1; } }
+  .thumb-sm { width: 56px; height: 42px; object-fit: cover; border-radius: 4px; background: var(--color-surface-2); }
+</style>

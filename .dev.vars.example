@@ -1,0 +1,19 @@
+# Copy to .dev.vars for local development (never commit .dev.vars).
+ENVIRONMENT=development
+SITE_URL=http://localhost:4321
+# Lets you open /admin locally without Cloudflare Access. Ignored when ENVIRONMENT=production.
+DEV_ADMIN_BYPASS=true
+
+# Stripe TEST keys from https://dashboard.stripe.com/test/apikeys
+STRIPE_SECRET_KEY=sk_test_xxx
+# From `stripe listen --forward-to localhost:4321/api/stripe/webhook`
+STRIPE_WEBHOOK_SECRET=whsec_xxx
+
+# Leave empty locally to print emails (incl. sign-in links) in the terminal instead of sending.
+RESEND_API_KEY=
+EMAIL_FROM=Shelfmade <onboarding@resend.dev>
+
+ADMIN_EMAILS=you@example.com
+CF_ACCESS_TEAM_DOMAIN=
+CF_ACCESS_AUD=
+STRIPE_AUTOMATIC_TAX=false
