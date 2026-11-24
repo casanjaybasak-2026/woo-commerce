@@ -4,28 +4,35 @@ interface Props { storeName: string }
 const { storeName } = Astro.props;
 const path = Astro.url.pathname;
 const nav = [
+  { href: "/", label: "Home" },
   { href: "/shop", label: "Shop" },
   { href: "/library", label: "Library" },
   { href: "/about", label: "About" },
+  { href: "/contact", label: "Contact" },
 ];
+const isActive = (href: string) => (href === "/" ? path === "/" : path.startsWith(href) || (href === "/shop" && path.startsWith("/p/")));
 ---
 <header class="site-header">
   <div class="container header-inner">
     <a href="/" class="logo">{storeName}</a>
+
     <nav class="nav-desktop" aria-label="Main">
-      {nav.map((n) => <a href={n.href} aria-current={path.startsWith(n.href) ? "page" : undefined}>{n.label}</a>)}
+      {nav.map((n) => <a href={n.href} aria-current={isActive(n.href) ? "page" : undefined}>{n.label}</a>)}
     </nav>
+
     <div class="header-actions">
       <a href="/cart" class="cart-link" aria-label="Cart">
         <Icon name="cart" size={22} />
         <span class="cart-count" data-cart-count hidden>0</span>
         <span class="sr-only" aria-live="polite" data-cart-live></span>
       </a>
+      <a href="/shop" class="btn btn-primary header-cta">Shop now</a>
       <details class="nav-mobile">
         <summary aria-label="Menu"><Icon name="menu" size={22} /></summary>
         <nav aria-label="Mobile">
-          {nav.map((n) => <a href={n.href}>{n.label}</a>)}
+          {nav.map((n) => <a href={n.href} aria-current={isActive(n.href) ? "page" : undefined}>{n.label}</a>)}
           <a href="/cart">Cart</a>
+          <a href="/shop" class="btn btn-primary mobile-cta">Shop now</a>
         </nav>
       </details>
     </div>
@@ -33,21 +40,44 @@ const nav = [
 </header>
 
 <style>
-  .site-header { position: sticky; top: 0; z-index: 50; background: rgba(255,255,255,.96); backdrop-filter: saturate(1.2) blur(6px); border-bottom: 1px solid var(--color-border); }
-  .header-inner { display: flex; align-items: center; justify-content: space-between; min-height: var(--header-h); gap: var(--space-5); }
-  .logo { font-size: var(--text-xl); font-weight: 700; color: var(--color-text); text-decoration: none; letter-spacing: -0.02em; }
-  .nav-desktop { display: none; gap: var(--space-2); margin-left: auto; }
-  .nav-desktop a { color: var(--color-text); text-decoration: none; font-weight: 500; padding: var(--space-3) var(--space-3); border-radius: var(--radius-sm); }
+  .site-header { position: sticky; top: 0; z-index: 50; background: rgba(255,255,255,.97); backdrop-filter: saturate(1.2) blur(6px); border-bottom: 1px solid var(--color-border); box-shadow: 0 1px 0 rgba(17,24,39,.02); }
+  .header-inner { display: flex; align-items: center; gap: var(--space-4); min-height: 72px; }
+  .logo { font-size: var(--text-xl); font-weight: 700; color: var(--color-text); text-decoration: none; letter-spacing: -0.02em; white-space: nowrap; }
+
+  /* Astra-style primary menu: links in a row on the right, active item underlined in the accent colour */
+  .nav-desktop { display: none; margin-left: auto; align-items: center; gap: var(--space-1); }
+  .nav-desktop a { position: relative; color: var(--color-text); text-decoration: none; font-weight: 500; font-size: var(--text-base); padding: var(--space-3) var(--space-3); border-radius: var(--radius-sm); white-space: nowrap; transition: color var(--dur-fast) var(--ease); }
+  .nav-desktop a::after { content: ""; position: absolute; left: var(--space-3); right: var(--space-3); bottom: 4px; height: 2px; border-radius: 2px; background: var(--color-accent); transform: scaleX(0); transition: transform var(--dur) var(--ease); }
   .nav-desktop a:hover, .nav-desktop a[aria-current="page"] { color: var(--color-accent); }
-  .header-actions { display: flex; align-items: center; gap: var(--space-2); }
+  .nav-desktop a:hover::after, .nav-desktop a[aria-current="page"]::after { transform: scaleX(1); }
+
+  .header-actions { display: flex; align-items: center; gap: var(--space-2); margin-left: auto; }
   .cart-link { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; color: var(--color-text); border-radius: var(--radius); }
-  .cart-link:hover { background: var(--color-surface); color: var(--color-text); }
+  .cart-link:hover { background: var(--color-surface); color: var(--color-accent); }
   .cart-count { position: absolute; top: 4px; right: 2px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: var(--radius-pill); background: var(--color-accent); color: var(--color-on-accent); font-size: 11px; font-weight: 700; line-height: 18px; text-align: center; }
+  .header-cta { display: none; min-height: 42px; padding: 0.625rem 1.125rem; }
+
   .nav-mobile { position: relative; }
   .nav-mobile summary { list-style: none; display: inline-flex; width: 44px; height: 44px; align-items: center; justify-content: center; cursor: pointer; border-radius: var(--radius); }
   .nav-mobile summary::-webkit-details-marker { display: none; }
-  .nav-mobile nav { position: absolute; right: 0; top: 52px; min-width: 200px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: var(--radius); box-shadow: var(--shadow-md); padding: var(--space-2); display: grid; }
-  .nav-mobile nav a { padding: var(--space-3) var(--space-4); color: var(--color-text); text-decoration: none; border-radius: var(--radius-sm); }
-  .nav-mobile nav a:hover { background: var(--color-surface); }
-  @media (min-width: 768px) { .nav-desktop { display: flex; } .nav-mobile { display: none; } }
+  .nav-mobile summary:hover { background: var(--color-surface); }
+  .nav-mobile nav { position: absolute; right: 0; top: 54px; min-width: 220px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: var(--radius); box-shadow: var(--shadow-md); padding: var(--space-2); display: grid; gap: 2px; }
+  .nav-mobile nav a:not(.btn) { padding: var(--space-3) var(--space-4); color: var(--color-text); text-decoration: none; border-radius: var(--radius-sm); font-weight: 500; }
+  .nav-mobile nav a:not(.btn):hover, .nav-mobile nav a[aria-current="page"] { background: var(--color-accent-soft); color: var(--color-accent-hover); }
+  .mobile-cta { margin-top: var(--space-2); }
+
+  /* Tablet and up: show the menu in a row */
+  @media (min-width: 640px) {
+    .nav-desktop { display: flex; }
+    .header-actions { margin-left: 0; }
+    .nav-mobile { display: none; }
+  }
+  @media (min-width: 640px) and (max-width: 819px) {
+    .nav-desktop a { padding-inline: var(--space-2); font-size: var(--text-sm); }
+    .nav-desktop a::after { left: var(--space-2); right: var(--space-2); }
+  }
+  /* Desktop: add the "Shop now" button */
+  @media (min-width: 1024px) {
+    .header-cta { display: inline-flex; margin-left: var(--space-2); }
+  }
 </style>
