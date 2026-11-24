@@ -10,7 +10,7 @@
   "vars": {
     "STORE_NAME": "Shelfmade",
     // Replace with your live address, e.g. https://shelfmade.<your-subdomain>.workers.dev or https://yourdomain.com
-    "SITE_URL": "https://shelfmade.example.workers.dev",
+    "SITE_URL": "https://shelfmade.casanjaybasak.workers.dev",
     "ENVIRONMENT": "production",
     "CURRENCY": "usd",
     "STRIPE_AUTOMATIC_TAX": "false"

@@ -14,7 +14,7 @@ hosted entirely on **Cloudflare**.
 |---|---|
 | App | [Astro 7](https://astro.build) (server-rendered) on Cloudflare Workers |
 | Database | Cloudflare D1 (SQLite), schema in `migrations/` |
-| Files | Cloudflare R2 (private bucket) |
+| Files | Cloudflare Workers KV (free tier, no card needed; 25 MB per file, capped at 900 MB total) |
 | Payments | Stripe Checkout and webhooks |
 | Email | Resend |
 | Admin login | Cloudflare Access (Zero Trust, free for up to 50 users) |
@@ -103,10 +103,10 @@ npx wrangler login
 npx wrangler d1 create shelfmade-db
 ```
 
-**2.3 Create the file bucket.** It is private by default. Don't enable public access.
+**2.3 Create the file storage (KV).** Copy the `id` it prints into `wrangler.jsonc` → `kv_namespaces` (binding `FILES`).
 
 ```bash
-npx wrangler r2 bucket create shelfmade-files
+npx wrangler kv namespace create shelfmade-files
 ```
 
 **2.4 Apply the database schema**
@@ -185,7 +185,7 @@ npx wrangler secret put CF_ACCESS_AUD
 
 1. Cloudflare dashboard → **My Profile → API Tokens → Create Token** → start from
    the **Edit Cloudflare Workers** template, then **add** the permissions
-   *Account → D1 → Edit* and *Account → Workers R2 Storage → Edit*. Create it and copy the token.
+   *Account → D1 → Edit* (the template already includes Workers KV). Create it and copy the token.
 2. Find your **Account ID** on the Workers & Pages overview page (right sidebar).
 3. GitHub repo → **Settings → Secrets and variables → Actions → New repository secret**:
    `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`.
@@ -203,14 +203,13 @@ branches run the tests only.
 2. **Products → Add product**: title, price, optional compare-at price, category,
    short and full description (Markdown) and a cover image (4:3, up to 5 MB).
    Tick **Published** when it's ready.
-3. Save, then use **Files buyers receive** to upload the deliverables (up to 100 MB each).
+3. Save, then use **Files buyers receive** to upload the deliverables (up to 25 MB each).
 
-**Files over 100 MB:** upload them with Wrangler, then use "Register a large file"
-on the product page. Use the product id shown in the placeholder:
-
-```bash
-npx wrangler r2 object put shelfmade-files/products/<product-id>/my-course.zip --file ./my-course.zip --remote
-```
+**Storage limits (free tier):** each file can be up to 25 MB, and the admin refuses
+uploads once total storage would pass 900 MB, safely under Workers KV's free 1 GB,
+so storage never costs money. Need bigger files later? Switch to Cloudflare R2
+(10 GB free, needs a card on file): add an R2 implementation of `FileStore` in
+`src/lib/storage.ts`.
 
 **Refunds:** refund the payment in Stripe. A full refund automatically removes the
 product from the buyer's Library. Partial refunds keep access.
@@ -224,7 +223,7 @@ product from the buyer's Library. Partial refunds keep access.
 - Prices are always read from the database at checkout. The browser only sends product ids.
 - Orders become paid only when a **signature-verified** Stripe webhook arrives.
   Webhook retries are de-duplicated.
-- Files live in a private R2 bucket. `/download/<id>` checks the signed-in buyer
+- Files live in private Workers KV storage. `/download/<id>` checks the signed-in buyer
   owns the product (and that it hasn't been refunded), allows 20 downloads per file
   per 24 hours, and streams the file. Only `covers/*` images are public.
 - Sign-in links are single-use, store only a SHA-256 hash, and expire after 15

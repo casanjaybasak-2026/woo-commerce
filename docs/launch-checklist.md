@@ -3,12 +3,12 @@
 Work top to bottom. Each item is a box you can tick once it's done and checked.
 
 ## 1. Cloudflare and deploys
-- [ ] D1 database created and its id is in `wrangler.jsonc`
-- [ ] R2 bucket `shelfmade-files` created, with **public access off** (R2 → bucket → Settings)
-- [ ] `npm run db:migrate:remote` applied
+- [x] D1 database created and its id is in `wrangler.jsonc`
+- [x] KV namespace `shelfmade-files` created for product files (private, free tier)
+- [x] `npm run db:migrate:remote` applied
 - [ ] GitHub secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` added
 - [ ] A push to `main` shows a green **Test and deploy** run in GitHub Actions
-- [ ] `SITE_URL` in `wrangler.jsonc` is your real public address (no trailing slash)
+- [x] `SITE_URL` in `wrangler.jsonc` is your real public address (`https://shelfmade.casanjaybasak.workers.dev` until a domain is added)
 
 ## 2. Admin security
 - [ ] Cloudflare Access application covers **both** `/admin` and `/api/admin`
@@ -62,6 +62,7 @@ Work top to bottom. Each item is a box you can tick once it's done and checked.
 ## 7. Content and storefront
 - [ ] At least 3 products published, each with a cover image (4:3), clear description and files
 - [ ] Each product was test-downloaded from the Library
+- [ ] Every file is 25 MB or smaller (free storage limit per file)
 - [ ] Home page hero text adjusted to your niche (`src/pages/index.astro`)
 - [ ] About page tells your story
 - [ ] Check on a phone: home, shop, product, cart, checkout, success and Library
