@@ -5,108 +5,337 @@ import Icon from "../components/Icon.astro";
 import EmptyState from "../components/EmptyState.astro";
 import { getEnv } from "../lib/env";
 import { listCategories, listPublished } from "../lib/db/products";
+import { formatUsd } from "../lib/money";
+import { mediaUrl } from "../lib/urls";
+import { about, benefits, faqs, finalCta, hero, highlights, steps, testimonials } from "../content/home";
 
 const env = getEnv();
 const [products, categories] = await Promise.all([listPublished(env.DB), listCategories(env.DB)]);
 const featured = products.slice(0, 8);
-const faqs = [
-  { q: "How do I get my files?", a: "Right after payment we email you a link that signs you in to your Library, where every purchase can be downloaded." },
-  { q: "Do I need an account?", a: "No password needed. Your email is your account: request a sign-in link any time from the Sign in page." },
-  { q: "Can I download again later?", a: "Yes. Your purchases stay in your Library, so you can come back and download them again whenever you need." },
-  { q: "Is checkout secure?", a: "Payments are handled by Stripe. Your card details never touch our servers." },
-];
+const showcase: Array<(typeof products)[number] | null> = [...products.slice(0, 3)];
+while (showcase.length < 3) showcase.push(null);
+const half = Math.ceil(faqs.length / 2);
 Astro.response.headers.set("Cache-Control", "public, max-age=60, s-maxage=300");
 ---
 <Base>
+  <!-- 1. Hero: copy on the left, product showcase on the right -->
   <section class="hero">
-    <div class="container hero-inner">
+    <div class="container hero-grid">
       <div class="hero-copy">
-        <span class="badge badge-accent">Instant digital downloads</span>
-        <h1>Practical digital products, ready the moment you buy.</h1>
-        <p class="lead muted">Templates, guides and toolkits made to save you hours. Pay securely, get an email, and download from your Library any time.</p>
-        <div class="row">
-          <a href="/shop" class="btn btn-primary btn-lg">Browse the shop <Icon name="arrow-right" /></a>
-          <a href="#how" class="btn btn-secondary btn-lg">How it works</a>
+        <span class="badge badge-accent">{hero.badge}</span>
+        <h1>{hero.title}</h1>
+        <p class="lead">{hero.subtitle}</p>
+        <div class="row hero-actions">
+          <a href={hero.primaryButton.href} class="btn btn-primary btn-lg">{hero.primaryButton.label} <Icon name="arrow-right" /></a>
+          <a href={hero.secondaryButton.href} class="btn btn-secondary btn-lg">{hero.secondaryButton.label}</a>
         </div>
+        <ul class="hero-checks">
+          {hero.checks.map((c) => <li><Icon name="check" size={18} />{c}</li>)}
+        </ul>
+      </div>
+
+      <div class="hero-visual" aria-hidden="true">
+        <div class="blob"></div>
+        <div class="mock">
+          <div class="mock-bar"><span></span><span></span><span></span></div>
+          <div class="mock-grid">
+            {showcase.map((p, i) => (
+              <div class:list={["mock-card", `c${i}`]}>
+                {p?.coverKey ? <img src={mediaUrl(p.coverKey)} alt="" loading="eager" /> : <div class="mock-cover" />}
+                {p
+                  ? <div class="mock-meta"><b>{p.title}</b><span>{formatUsd(p.priceCents)}</span></div>
+                  : <div class="mock-meta"><i></i><i class="short"></i></div>}
+              </div>
+            ))}
+          </div>
+        </div>
+        <div class="float f1"><Icon name="download" size={18} /> Ready to download</div>
+        <div class="float f2"><Icon name="lock" size={18} /> Secure checkout</div>
       </div>
     </div>
   </section>
 
+  <!-- 2. Highlights strip -->
+  <section class="highlights">
+    <div class="container hl-grid">
+      {highlights.map((h) => (
+        <div class="hl">
+          <span class="icon-box"><Icon name={h.icon} /></span>
+          <div><h3>{h.title}</h3><p class="muted small">{h.text}</p></div>
+        </div>
+      ))}
+    </div>
+  </section>
+
+  <!-- 3. Featured products -->
   <section class="section">
     <div class="container">
-      <div class="row between section-head">
+      <div class="section-title">
+        <span class="eyebrow">The shelf</span>
         <h2>Featured products</h2>
-        {products.length > 0 && <a href="/shop" class="btn btn-ghost">View all <Icon name="arrow-right" size={18} /></a>}
+        <p class="muted">Hand-picked favourites, ready to download today.</p>
       </div>
       {featured.length > 0
         ? <div class="grid grid-4">{featured.map((p) => <ProductCard product={p} />)}</div>
         : <EmptyState title="New products are on the way" text="Check back soon. The shelves are being stocked." icon="file" />}
+      {products.length > 0 && <div class="center-row"><a href="/shop" class="btn btn-secondary">View all products <Icon name="arrow-right" size={18} /></a></div>}
     </div>
   </section>
 
+  <!-- 4. Benefits: illustration + checklist -->
+  <section class="section band">
+    <div class="container split">
+      <div class="split-visual" aria-hidden="true">
+        <div class="stack">
+          <div class="sheet s3"></div>
+          <div class="sheet s2"></div>
+          <div class="sheet s1">
+            <div class="sheet-head"><Icon name="file" size={22} /><span></span></div>
+            <i></i><i></i><i class="short"></i>
+            <div class="sheet-row"><b></b><b></b></div>
+          </div>
+        </div>
+      </div>
+      <div class="split-copy">
+        <span class="eyebrow">{benefits.eyebrow}</span>
+        <h2>{benefits.title}</h2>
+        <p class="muted">{benefits.text}</p>
+        <ul class="ticks">
+          {benefits.points.map((pt) => <li><span class="tick"><Icon name="check" size={16} /></span>{pt}</li>)}
+        </ul>
+        <a href={benefits.button.href} class="btn btn-primary">{benefits.button.label}</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. Categories -->
   {categories.length > 0 && (
-    <section class="section-tight">
+    <section class="section">
       <div class="container">
-        <h2>Shop by category</h2>
+        <div class="section-title">
+          <span class="eyebrow">Browse</span>
+          <h2>Shop by category</h2>
+        </div>
         <div class="cats">
-          {categories.map((c) => <a class="cat card" href={`/shop?category=${encodeURIComponent(c)}`}><span>{c}</span><Icon name="arrow-right" size={18} /></a>)}
+          {categories.map((c) => (
+            <a class="cat" href={`/shop?category=${encodeURIComponent(c)}`}>
+              <span class="icon-box sm"><Icon name="layers" size={18} /></span>
+              <span class="cat-name">{c}</span>
+              <Icon name="arrow-right" size={18} />
+            </a>
+          ))}
         </div>
       </div>
     </section>
   )}
 
-  <section class="section band" id="how">
+  <!-- 6. How it works -->
+  <section class="section" id="how">
     <div class="container">
-      <h2 class="center">How it works</h2>
+      <div class="section-title">
+        <span class="eyebrow">Simple &amp; fast</span>
+        <h2>How it works</h2>
+        <p class="muted">From checkout to download in under a minute.</p>
+      </div>
       <ol class="steps">
-        <li class="card"><span class="step-icon"><Icon name="cart" /></span><h3>1. Choose &amp; pay</h3><p class="muted">Add products to your cart and check out securely with Stripe.</p></li>
-        <li class="card"><span class="step-icon"><Icon name="mail" /></span><h3>2. Check your email</h3><p class="muted">We send a receipt with a link that signs you straight in.</p></li>
-        <li class="card"><span class="step-icon"><Icon name="download" /></span><h3>3. Download any time</h3><p class="muted">Your purchases live in your Library. Download them whenever you need.</p></li>
+        {steps.map((s, i) => (
+          <li>
+            <span class="step-num">{i + 1}</span>
+            <span class="icon-box"><Icon name={s.icon} /></span>
+            <h3>{s.title}</h3>
+            <p class="muted">{s.text}</p>
+          </li>
+        ))}
       </ol>
     </div>
   </section>
 
-  <section class="section-tight">
-    <div class="container trust">
-      <div><Icon name="lock" /><span><strong>Secure checkout</strong><br /><span class="muted small">Powered by Stripe</span></span></div>
-      <div><Icon name="zap" /><span><strong>Instant delivery</strong><br /><span class="muted small">Files ready right after payment</span></span></div>
-      <div><Icon name="shield" /><span><strong>Fair refunds</strong><br /><a class="small" href="/refund-policy">Read our policy</a></span></div>
+  <!-- 7. Testimonials (hidden until real reviews are added in src/content/home.ts) -->
+  {testimonials.length > 0 && (
+    <section class="section band">
+      <div class="container">
+        <div class="section-title">
+          <span class="eyebrow">Reviews</span>
+          <h2>What customers say</h2>
+        </div>
+        <div class="quotes">
+          {testimonials.map((t) => (
+            <figure class="quote card">
+              <div class="stars" aria-label="5 out of 5 stars">{[0, 1, 2, 3, 4].map(() => <Icon name="star" size={16} />)}</div>
+              <blockquote>“{t.quote}”</blockquote>
+              <figcaption><strong>{t.name}</strong>{t.role && <span class="muted small"> · {t.role}</span>}</figcaption>
+            </figure>
+          ))}
+        </div>
+      </div>
+    </section>
+  )}
+
+  <!-- 8. About the creator -->
+  <section class="section">
+    <div class="container about card">
+      <div class="avatar" aria-hidden="true"><Icon name="heart" size={32} /></div>
+      <div>
+        <span class="eyebrow">{about.eyebrow}</span>
+        <h2>{about.title}</h2>
+        <p class="muted">{about.text}</p>
+        <a href={about.button.href} class="btn btn-secondary">{about.button.label}</a>
+      </div>
     </div>
   </section>
 
-  <section class="section">
-    <div class="container container-narrow">
-      <h2 class="center">Questions</h2>
-      <div class="faq">
-        {faqs.map((f) => <details><summary>{f.q}</summary><p class="muted">{f.a}</p></details>)}
+  <!-- 9. FAQ -->
+  <section class="section band">
+    <div class="container">
+      <div class="section-title">
+        <span class="eyebrow">Help</span>
+        <h2>Frequently asked questions</h2>
+      </div>
+      <div class="faq-grid">
+        {[faqs.slice(0, half), faqs.slice(half)].map((col) => (
+          <div class="faq">
+            {col.map((f) => <details><summary>{f.q}<span class="plus" aria-hidden="true"></span></summary><p class="muted">{f.a}</p></details>)}
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- 10. Final call to action -->
+  <section class="section-tight">
+    <div class="container">
+      <div class="cta">
+        <div>
+          <h2>{finalCta.title}</h2>
+          <p>{finalCta.text}</p>
+        </div>
+        <a href={finalCta.button.href} class="btn btn-lg cta-btn">{finalCta.button.label} <Icon name="arrow-right" /></a>
       </div>
     </div>
   </section>
 </Base>
 
 <style>
-  .hero { background: linear-gradient(180deg, var(--color-accent-soft) 0%, var(--color-bg) 100%); border-bottom: 1px solid var(--color-border); }
-  .hero-inner { padding-block: var(--space-9) var(--space-8); }
-  .hero-copy { max-width: 720px; display: grid; gap: var(--space-4); justify-items: start; }
+  /* ---------- shared ---------- */
+  .section-title { text-align: center; max-width: 640px; margin: 0 auto var(--space-7); }
+  .section-title h2 { margin: var(--space-2) 0 var(--space-3); font-size: clamp(1.625rem, 2vw + 1rem, 2.25rem); }
+  .section-title p { margin: 0; }
+  .eyebrow { color: var(--color-accent); }
+  .icon-box { display: inline-grid; place-items: center; flex: none; width: 48px; height: 48px; border-radius: 12px; background: var(--color-accent-soft); color: var(--color-accent); }
+  .icon-box.sm { width: 36px; height: 36px; border-radius: 10px; }
+  .center-row { display: flex; justify-content: center; margin-top: var(--space-6); }
+
+  /* ---------- 1. hero ---------- */
+  .hero { position: relative; overflow: hidden; background: radial-gradient(1200px 500px at 85% -10%, var(--color-accent-soft), transparent 60%), linear-gradient(180deg, #f7f9ff 0%, var(--color-bg) 100%); border-bottom: 1px solid var(--color-border); }
+  .hero-grid { display: grid; gap: var(--space-7); align-items: center; padding-block: var(--space-8) var(--space-8); }
+  @media (min-width: 960px) { .hero-grid { grid-template-columns: 1.05fr 1fr; padding-block: var(--space-9); } }
+  .hero-copy { display: grid; gap: var(--space-4); justify-items: start; }
   .hero-copy .badge { font-weight: 800; font-size: var(--text-sm); padding: 4px 14px; }
-  .hero h1 { font-size: clamp(1.875rem, 3.2vw + 0.9rem, 2.75rem); line-height: 1.15; margin: 0; max-width: 100%; text-wrap: balance; overflow-wrap: break-word; }
-  .lead { font-size: var(--text-lg); margin: 0 0 var(--space-2); }
-  .section-head { margin-bottom: var(--space-5); }
-  .section-head h2 { margin: 0; }
-  .center { text-align: center; }
-  .cats { display: grid; gap: var(--space-3); grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
-  .cat { display: flex; justify-content: space-between; align-items: center; padding: var(--space-4) var(--space-5); color: var(--color-text); text-decoration: none; font-weight: 600; min-height: 56px; }
-  .cat:hover { border-color: var(--color-accent); color: var(--color-accent); }
-  .steps { list-style: none; padding: 0; margin: var(--space-6) 0 0; display: grid; gap: var(--space-5); }
+  .hero h1 { font-size: clamp(1.875rem, 3.2vw + 0.9rem, 3rem); line-height: 1.12; margin: 0; max-width: 100%; text-wrap: balance; overflow-wrap: break-word; }
+  .lead { font-size: var(--text-lg); color: var(--color-text-muted); margin: 0; max-width: 56ch; }
+  .hero-actions { margin-top: var(--space-2); }
+  .hero-checks { list-style: none; padding: 0; margin: var(--space-2) 0 0; display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-5); font-size: var(--text-sm); color: var(--color-text-muted); }
+  .hero-checks li { display: inline-flex; align-items: center; gap: 6px; }
+  .hero-checks :global(svg) { color: var(--color-success); }
+
+  .hero-visual { position: relative; max-width: 520px; width: 100%; justify-self: center; }
+  .blob { position: absolute; inset: 8% -6% -6% 10%; border-radius: 40% 60% 55% 45% / 50% 40% 60% 50%; background: linear-gradient(135deg, #c7d6ff, #eef2ff); filter: blur(2px); }
+  .mock { position: relative; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: var(--radius-lg); box-shadow: 0 24px 60px rgba(31, 41, 55, 0.12); overflow: hidden; }
+  .mock-bar { display: flex; gap: 6px; padding: 12px 14px; border-bottom: 1px solid var(--color-border); background: var(--color-surface); }
+  .mock-bar span { width: 10px; height: 10px; border-radius: 50%; background: var(--color-border-strong); }
+  .mock-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; padding: 16px; }
+  .mock-card { border: 1px solid var(--color-border); border-radius: var(--radius); overflow: hidden; background: var(--color-bg); }
+  .mock-card img, .mock-cover { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; }
+  .c0 .mock-cover { background: linear-gradient(135deg, #2f5bea, #6d8cff); }
+  .c1 .mock-cover { background: linear-gradient(135deg, #15803d, #5cc48a); }
+  .c2 .mock-cover { background: linear-gradient(135deg, #a15c07, #f0b45a); }
+  .mock-meta { padding: 8px; display: grid; gap: 4px; font-size: 11px; line-height: 1.3; }
+  .mock-meta b { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .mock-meta span { color: var(--color-accent); font-weight: 700; }
+  .mock-meta i { display: block; height: 6px; border-radius: 3px; background: var(--color-surface-2); }
+  .mock-meta i.short { width: 55%; background: var(--color-accent-soft); }
+  .float { position: absolute; display: inline-flex; align-items: center; gap: 8px; padding: 10px 14px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: var(--radius-pill); box-shadow: var(--shadow-md); font-size: var(--text-sm); font-weight: 600; white-space: nowrap; }
+  .float :global(svg) { color: var(--color-accent); }
+  .f1 { left: -12px; bottom: -18px; }
+  .f2 { right: -8px; top: -16px; }
+  @media (max-width: 520px) { .f1 { left: 4px; } .f2 { right: 4px; } }
+
+  /* ---------- 2. highlights ---------- */
+  .highlights { border-bottom: 1px solid var(--color-border); }
+  .hl-grid { display: grid; gap: var(--space-5); padding-block: var(--space-6); grid-template-columns: 1fr; }
+  @media (min-width: 640px) { .hl-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (min-width: 1024px) { .hl-grid { grid-template-columns: repeat(4, 1fr); } }
+  .hl { display: flex; gap: var(--space-3); align-items: flex-start; }
+  .hl h3 { font-size: var(--text-base); margin: 2px 0 2px; }
+  .hl p { margin: 0; }
+
+  /* ---------- 4. benefits split ---------- */
+  .split { display: grid; gap: var(--space-7); align-items: center; }
+  @media (min-width: 960px) { .split { grid-template-columns: 1fr 1fr; gap: var(--space-9); } }
+  .split-copy h2 { font-size: clamp(1.625rem, 2vw + 1rem, 2.25rem); margin: var(--space-2) 0 var(--space-3); }
+  .ticks { list-style: none; padding: 0; margin: var(--space-5) 0 var(--space-6); display: grid; gap: var(--space-3); }
+  .ticks li { display: flex; gap: var(--space-3); align-items: center; font-weight: 500; }
+  .tick { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--color-success-soft); color: var(--color-success); flex: none; }
+  .split-visual { display: grid; place-items: center; order: 2; }
+  @media (min-width: 960px) { .split-visual { order: 0; } }
+  .stack { position: relative; width: min(100%, 300px); aspect-ratio: 1 / 1; }
+  @media (min-width: 960px) { .stack { width: min(100%, 420px); } }
+  .sheet { position: absolute; inset: 12% 14%; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: var(--radius-lg); box-shadow: var(--shadow-md); }
+  .s3 { transform: rotate(-8deg) translate(-6%, 4%); background: #e8eeff; }
+  .s2 { transform: rotate(5deg) translate(5%, 2%); background: #f3f6ff; }
+  .s1 { padding: 8%; display: grid; align-content: start; gap: 12px; }
+  .sheet-head { display: flex; align-items: center; gap: 10px; color: var(--color-accent); margin-bottom: 6px; }
+  .sheet-head span { height: 12px; flex: 1; border-radius: 6px; background: var(--color-accent-soft); }
+  .s1 i { display: block; height: 10px; border-radius: 5px; background: var(--color-surface-2); }
+  .s1 i.short { width: 60%; }
+  .sheet-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 10px; }
+  .sheet-row b { display: block; aspect-ratio: 4 / 3; border-radius: var(--radius); background: linear-gradient(135deg, var(--color-accent-soft), #dfe7ff); }
+
+  /* ---------- 5. categories ---------- */
+  .cats { display: grid; gap: var(--space-3); grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); }
+  .cat { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-4); border: 1px solid var(--color-border); border-radius: var(--radius); color: var(--color-text); text-decoration: none; font-weight: 600; background: var(--color-bg); transition: border-color var(--dur-fast) var(--ease), box-shadow var(--dur) var(--ease); }
+  .cat-name { flex: 1; }
+  .cat:hover { border-color: var(--color-accent); box-shadow: var(--shadow-md); color: var(--color-accent); }
+
+  /* ---------- 6. steps ---------- */
+  .steps { list-style: none; padding: 0; margin: 0; display: grid; gap: var(--space-5); counter-reset: step; }
   @media (min-width: 768px) { .steps { grid-template-columns: repeat(3, 1fr); } }
-  .steps li { padding: var(--space-6); }
+  .steps li { position: relative; padding: var(--space-6); border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-bg); text-align: center; }
+  .steps li .icon-box { margin-bottom: var(--space-4); }
+  .steps h3 { margin-bottom: var(--space-2); }
   .steps p { margin: 0; }
-  .step-icon { display: inline-grid; place-items: center; width: 44px; height: 44px; border-radius: var(--radius); background: var(--color-accent-soft); color: var(--color-accent); margin-bottom: var(--space-4); }
-  .trust { display: grid; gap: var(--space-5); grid-template-columns: 1fr; }
-  @media (min-width: 768px) { .trust { grid-template-columns: repeat(3, 1fr); } }
-  .trust > div { display: flex; gap: var(--space-3); align-items: flex-start; color: var(--color-accent); }
-  .trust strong { color: var(--color-text); }
-  .faq details { border-bottom: 1px solid var(--color-border); padding-block: var(--space-2); }
-  .faq summary { cursor: pointer; font-weight: 600; min-height: 44px; display: flex; align-items: center; }
-  .faq details p { margin: 0 0 var(--space-3); }
+  .step-num { position: absolute; top: -14px; left: 50%; transform: translateX(-50%); width: 28px; height: 28px; border-radius: 50%; background: var(--color-accent); color: #fff; font-weight: 700; font-size: var(--text-sm); display: grid; place-items: center; box-shadow: 0 0 0 4px var(--color-bg); }
+
+  /* ---------- 7. testimonials ---------- */
+  .quotes { display: grid; gap: var(--space-5); }
+  @media (min-width: 768px) { .quotes { grid-template-columns: repeat(3, 1fr); } }
+  .quote { margin: 0; padding: var(--space-6); display: grid; gap: var(--space-4); }
+  .stars { display: flex; gap: 2px; color: #f5a524; }
+  .stars :global(svg) { fill: currentColor; }
+  .quote blockquote { margin: 0; font-size: var(--text-lg); line-height: 1.6; }
+
+  /* ---------- 8. about ---------- */
+  .about { display: grid; gap: var(--space-5); align-items: center; padding: var(--space-7); }
+  @media (min-width: 768px) { .about { grid-template-columns: auto 1fr; gap: var(--space-7); } }
+  .about h2 { font-size: clamp(1.5rem, 1.5vw + 1rem, 2rem); margin: var(--space-2) 0 var(--space-3); }
+  .avatar { width: 112px; height: 112px; border-radius: 50%; display: grid; place-items: center; background: linear-gradient(135deg, var(--color-accent), #6d8cff); color: #fff; box-shadow: 0 0 0 6px var(--color-accent-soft); }
+
+  /* ---------- 9. faq ---------- */
+  .faq-grid { display: grid; gap: 0 var(--space-6); max-width: 1000px; margin-inline: auto; }
+  @media (min-width: 900px) { .faq-grid { grid-template-columns: 1fr 1fr; } }
+  .faq details { background: var(--color-bg); border: 1px solid var(--color-border); border-radius: var(--radius); padding: 0 var(--space-5); margin-bottom: var(--space-3); }
+  .faq summary { cursor: pointer; font-weight: 600; min-height: 56px; display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); list-style: none; }
+  .faq summary::-webkit-details-marker { display: none; }
+  .plus { position: relative; width: 14px; height: 14px; flex: none; }
+  .plus::before, .plus::after { content: ""; position: absolute; left: 0; top: 6px; width: 14px; height: 2px; border-radius: 1px; background: var(--color-accent); transition: transform var(--dur) var(--ease); }
+  .plus::after { transform: rotate(90deg); }
+  details[open] .plus::after { transform: rotate(0deg); }
+  .faq details p { margin: 0 0 var(--space-4); }
+
+  /* ---------- 10. final CTA ---------- */
+  .cta { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-5); padding: var(--space-7); border-radius: var(--radius-lg); background: linear-gradient(120deg, var(--color-accent) 0%, #4a6ff0 60%, #6d8cff 100%); color: #fff; }
+  .cta h2 { color: #fff; margin: 0 0 var(--space-2); font-size: clamp(1.5rem, 1.5vw + 1rem, 2rem); }
+  .cta p { margin: 0; color: rgba(255, 255, 255, 0.88); }
+  .cta-btn { background: #fff; color: var(--color-accent-hover); }
+  .cta-btn:hover { background: #f0f4ff; color: var(--color-accent-hover); }
 </style>
