@@ -113,7 +113,7 @@ export async function listCategories(db: D1Database): Promise<string[]> {
 
 export interface ProductInput {
   id?: string;
-  /** Id to use when inserting (lets callers key R2 objects before the row exists). */
+  /** Id to use when inserting (lets callers key stored files before the row exists). */
   newId?: string;
   slug?: string;
   title: string;
@@ -225,7 +225,7 @@ export async function archiveFile(db: D1Database, fileId: string, now: Date): Pr
   await db.prepare("UPDATE product_files SET archived_at = ? WHERE id = ?").bind(now.toISOString(), fileId).run();
 }
 
-/** Deletes the file row; returns it so the caller can delete the R2 object. */
+/** Deletes the file row; returns it so the caller can delete the stored file. */
 export async function removeFile(db: D1Database, fileId: string): Promise<ProductFile | null> {
   const f = await getFile(db, fileId);
   if (!f) return null;

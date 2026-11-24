@@ -23,7 +23,8 @@
       "migrations_dir": "migrations"
     }
   ],
-  "r2_buckets": [
-    { "binding": "FILES", "bucket_name": "shelfmade-files" }
+  // Product files and cover images (Workers KV: free tier, no payment method needed).
+  "kv_namespaces": [
+    { "binding": "FILES", "id": "b5ab4359fab046cfb146a73a5821293a" }
   ]
 }

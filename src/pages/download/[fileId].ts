@@ -1,7 +1,7 @@
 import type { APIRoute } from "astro";
 import { authorizeDownload } from "../../lib/downloads";
 import { getEnv } from "../../lib/env";
-import { now } from "../../lib/services";
+import { files, now } from "../../lib/services";
 
 function page(status: number, title: string, text: string) {
   const html = `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title>
@@ -19,9 +19,9 @@ export const GET: APIRoute = async ({ params, locals }) => {
       return page(429, "Download limit reached", "You've downloaded this file many times in the last 24 hours. Please try again later, or contact us if you need help.");
     return page(404, "File not found", "This file isn't in your Library.");
   }
-  const obj = await env.FILES.get(decision.file.r2Key);
+  const obj = await files(env).get(decision.file.r2Key);
   if (!obj) {
-    console.error(`[download] missing R2 object ${decision.file.r2Key}`);
+    console.error(`[download] missing stored file ${decision.file.r2Key}`);
     return page(404, "File unavailable", "This file is temporarily unavailable. Please contact us and we'll sort it out.");
   }
   const name = decision.file.displayName;

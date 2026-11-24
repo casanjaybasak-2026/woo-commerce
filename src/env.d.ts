@@ -5,7 +5,7 @@ import type { Customer } from "./lib/types";
 declare global {
   interface Env {
     DB: D1Database;
-    FILES: R2Bucket;
+    FILES: KVNamespace;
     ASSETS: Fetcher;
     SITE_URL: string;
     STORE_NAME: string;

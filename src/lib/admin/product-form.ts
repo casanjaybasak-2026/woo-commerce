@@ -76,4 +76,4 @@ export function safeFileName(name: string): string {
 }
 
 export const MAX_COVER_BYTES = 5 * 1024 * 1024;
-export const MAX_UPLOAD_BYTES = 100 * 1024 * 1024;
+export { MAX_FILE_BYTES as MAX_UPLOAD_BYTES } from "../storage";

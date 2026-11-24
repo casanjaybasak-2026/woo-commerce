@@ -6,10 +6,13 @@ import {
 } from "../../../lib/db/products";
 import { MAX_COVER_BYTES, MAX_UPLOAD_BYTES, parseProductForm, safeFileName } from "../../../lib/admin/product-form";
 import { formatBytes, mediaUrl } from "../../../lib/urls";
+import { files as fileStore } from "../../../lib/services";
+import { canStore } from "../../../lib/storage";
 import type { Product } from "../../../lib/types";
 
 const env = getEnv();
 const db = env.DB;
+const store = fileStore(env);
 const id = Astro.params.id!;
 const isNew = id === "new";
 let product: Product | null = isNew ? null : await getProductById(db, id);
@@ -33,17 +36,21 @@ if (Astro.request.method === "POST") {
     if (isFile(cover)) {
       if (!cover.type.startsWith("image/")) errors.cover = "Cover must be an image (JPG, PNG or WebP).";
       else if (cover.size > MAX_COVER_BYTES) errors.cover = "Cover image must be 5 MB or smaller.";
+      else {
+        const room = canStore(await store.usedBytes(), cover.size);
+        if (!room.ok) errors.cover = room.message;
+      }
     }
     if (parsed.ok && Object.keys(errors).length === 0) {
       const productId = product?.id ?? crypto.randomUUID();
       let coverKey = product?.coverKey ?? null;
       if (isFile(cover)) {
         const newKey = `covers/${productId}/${crypto.randomUUID().slice(0, 8)}-${safeFileName(cover.name)}`;
-        await env.FILES.put(newKey, cover.stream(), { httpMetadata: { contentType: cover.type } });
-        if (coverKey) await env.FILES.delete(coverKey);
+        await store.put(newKey, await cover.arrayBuffer(), cover.type);
+        if (coverKey) await store.delete(coverKey);
         coverKey = newKey;
       } else if (form.get("removeCover") === "on" && coverKey) {
-        await env.FILES.delete(coverKey);
+        await store.delete(coverKey);
         coverKey = null;
       }
       const saved = await saveProduct(db, { ...parsed.value, id: product?.id, newId: productId, coverKey }, new Date());
@@ -55,10 +62,9 @@ if (Astro.request.method === "POST") {
   if (action === "delete" && product) {
     const r = await deleteProduct(db, product.id, new Date());
     if (r === "deleted") {
-      if (product.coverKey) await env.FILES.delete(product.coverKey);
-      // Files rows were removed; objects under products/<id>/ are cleaned up below.
-      const listed = await env.FILES.list({ prefix: `products/${product.id}/` });
-      if (listed.objects.length) await env.FILES.delete(listed.objects.map((o) => o.key));
+      if (product.coverKey) await store.delete(product.coverKey);
+      // File rows were removed; delete the stored files under products/<id>/ too.
+      await store.delete(await store.listKeys(`products/${product.id}/`));
     }
     return Astro.redirect(`/admin/products?msg=${r}`);
   }
@@ -66,22 +72,16 @@ if (Astro.request.method === "POST") {
   if (action === "upload" && product) {
     const file = form.get("file");
     if (!isFile(file)) fileError = "Choose a file to upload.";
-    else if (file.size > MAX_UPLOAD_BYTES) fileError = "Files over 100 MB must be uploaded with Wrangler (see README), then registered below.";
+    else if (file.size > MAX_UPLOAD_BYTES) fileError = "Files must be 25 MB or smaller (free storage limit per file). Try compressing or splitting it.";
     else {
+      const room = canStore(await store.usedBytes(), file.size);
+      if (!room.ok) fileError = room.message;
+    }
+    if (isFile(file) && !fileError) {
       const name = safeFileName(file.name);
       const key = `products/${product.id}/${crypto.randomUUID().slice(0, 8)}-${name}`;
-      await env.FILES.put(key, file.stream(), { httpMetadata: { contentType: file.type || "application/octet-stream" } });
+      await store.put(key, await file.arrayBuffer(), file.type || "application/octet-stream");
       await addFile(db, { productId: product.id, r2Key: key, displayName: String(form.get("displayName") ?? "").trim() || file.name, sizeBytes: file.size, contentType: file.type || "application/octet-stream" }, new Date());
-      return Astro.redirect(`/admin/products/${product.id}?msg=file-added#files`);
-    }
-  }
-
-  if (action === "register" && product) {
-    const key = String(form.get("r2Key") ?? "").trim();
-    const head = key.startsWith(`products/${product.id}/`) ? await env.FILES.head(key) : null;
-    if (!head) fileError = `No object found. Upload it to products/${product.id}/<name> first.`;
-    else {
-      await addFile(db, { productId: product.id, r2Key: key, displayName: String(form.get("displayName") ?? "").trim() || key.split("/").pop()!, sizeBytes: head.size, contentType: head.httpMetadata?.contentType || "application/octet-stream" }, new Date());
       return Astro.redirect(`/admin/products/${product.id}?msg=file-added#files`);
     }
   }
@@ -94,7 +94,7 @@ if (Astro.request.method === "POST") {
         return Astro.redirect(`/admin/products/${product.id}?msg=file-archived#files`);
       }
       await removeFile(db, file.id);
-      await env.FILES.delete(file.r2Key);
+      await store.delete(file.r2Key);
     }
     return Astro.redirect(`/admin/products/${product.id}?msg=file-removed#files`);
   }
@@ -201,22 +201,11 @@ const err = (k: string) => errors[k];
       <form method="post" enctype="multipart/form-data" class="panel" style="margin-top:var(--space-4)">
         <input type="hidden" name="action" value="upload" />
         <div class="form-grid">
-          <div class="field"><label for="file">Upload a file</label><input id="file" name="file" type="file" required aria-describedby="file-help" /><p id="file-help" class="help">PDF, ZIP, etc. Up to 100 MB.</p></div>
+          <div class="field"><label for="file">Upload a file</label><input id="file" name="file" type="file" required aria-describedby="file-help" /><p id="file-help" class="help">PDF, ZIP, etc. Up to 25 MB each.</p></div>
           <div class="field"><label for="displayName">Display name (optional)</label><input id="displayName" name="displayName" class="input" placeholder="Defaults to the file name" /></div>
         </div>
         <button class="btn btn-secondary" type="submit">Upload file</button>
       </form>
-      <details style="margin-top:var(--space-4)">
-        <summary class="small">Register a large file already uploaded to R2</summary>
-        <form method="post" class="panel" style="margin-top:var(--space-3)">
-          <input type="hidden" name="action" value="register" />
-          <div class="form-grid">
-            <div class="field"><label for="r2Key">R2 key</label><input id="r2Key" name="r2Key" class="input" placeholder={`products/${product.id}/my-course.zip`} /></div>
-            <div class="field"><label for="displayName2">Display name</label><input id="displayName2" name="displayName" class="input" /></div>
-          </div>
-          <button class="btn btn-secondary" type="submit">Register file</button>
-        </form>
-      </details>
     </section>
 
     <section style="margin-top:var(--space-7)">

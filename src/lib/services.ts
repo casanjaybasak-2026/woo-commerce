@@ -2,6 +2,7 @@
 import { ConsoleMailer, ResendMailer, type Mailer } from "./email/mailer";
 import { getEnv } from "./env";
 import { StripeGateway } from "./payments";
+import { KvFileStore, type FileStore } from "./storage";
 
 export function siteUrl(env: Env = getEnv()): string {
   return (env.SITE_URL || "http://localhost:4321").replace(/\/$/, "");
@@ -19,6 +20,10 @@ export function mailer(env: Env = getEnv()): Mailer {
 export function gateway(env: Env = getEnv()): StripeGateway {
   if (!env.STRIPE_SECRET_KEY) throw new Error("STRIPE_SECRET_KEY is not set");
   return new StripeGateway(env.STRIPE_SECRET_KEY, env.STRIPE_WEBHOOK_SECRET ?? "");
+}
+
+export function files(env: Env = getEnv()): FileStore {
+  return new KvFileStore(env.FILES);
 }
 
 export const now = () => new Date();
